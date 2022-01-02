@@ -144,8 +144,8 @@ def load_term_and_id(filename, sysnet_prefix):
             continue
 
         total += 1
-        components = line.split('\t').replace("_", " ")
-        word = components[WORD].strip()
+        components = line.split('\t')
+        word = components[WORD].strip().replace("_", " ")
         cat_synset_id = components[CAT_ID].strip()
         synset_id = cat_synset_id.replace(sysnet_prefix, '')
         
