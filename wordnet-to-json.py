@@ -19,21 +19,26 @@
 # Boston, MA 02111-1307, USA.
 
 import json
+import wikidata
+
 # Read the subjects from WordNet 3.1 since they are not avaible in 3.0
-def read_subjects():
+def read_subjects_and_keymapping():
+    mappings = {}
     subjects = {}
     with open('/home/jordi/sc/diccionari-multilingue/sources/wordnet/wordnet31-catalan/produced/synset_ids_31.txt', 'r') as fh:
         lines = fh.readlines()
 
         for line in lines:
             components = line.split('\t')
+            key_31 = components[0].strip()
             key_30 = components[1].strip()
-            subject = components[2].strip()           
+            subject = components[2].strip()
             subjects[key_30] = subject
+            mappings[key_31] = key_30
 
 
     print(f"Read {len(subjects)} subjects")
-    return subjects
+    return mappings, subjects
 
 
 def load_term(filename, sysnet_prefix):
@@ -178,7 +183,7 @@ def main():
 
     # Catalan to Spanish
     catalan_terms_sequential = load_term_and_id('data/3.0/ca/wei_cat-30_variant.tsv', 'cat-30-')
-    subjects = read_subjects()
+    key31_to_key30, subjects = read_subjects_and_keymapping()
 
     last_word = None
     last_entry = []
