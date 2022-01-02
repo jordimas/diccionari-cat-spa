@@ -246,7 +246,9 @@ def main():
 
     print("--- Stats")
     print(f"{len(entries)} dictionary entries with {senses} senses")
-    print(f"{spanish_def} senses with Spanish definition, Catalan {catalan_def}")
+    pspanish_def = spanish_def * 100 / senses
+    pcatalan_def = catalan_def * 100 / senses
+    print(f"{spanish_def} ({pspanish_def:.2f}%) senses with Spanish definition, Catalan {catalan_def} ({pcatalan_def:.2f}%)")
 
 if __name__ == "__main__":
     main()
