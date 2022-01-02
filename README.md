@@ -1,0 +1,1 @@
+# diccionari-cat-spa
