@@ -19,6 +19,21 @@
 # Boston, MA 02111-1307, USA.
 
 import json
+# Read the subjects from WordNet 3.1 since they are not avaible in 3.0
+def read_subjects():
+    subjects = {}
+    with open('/home/jordi/sc/diccionari-multilingue/sources/wordnet/wordnet31-catalan/produced/synset_ids_31.txt', 'r') as fh:
+        lines = fh.readlines()
+
+        for line in lines:
+            components = line.split('\t')
+            key_30 = components[1].strip()
+            subject = components[2].strip()           
+            subjects[key_30] = subject
+
+
+    print(f"Read {len(subjects)} subjects")
+    return subjects
 
 
 def load_term(filename, sysnet_prefix):
@@ -38,10 +53,14 @@ def load_term(filename, sysnet_prefix):
 
         total += 1
         components = line.split('\t')
-        word = components[WORD].strip()
+        word = components[WORD].strip().replace("_", " ")
         cat_synset_id = components[CAT_ID].strip()
         synset_id = cat_synset_id.replace(sysnet_prefix, '')
-        
+
+        source = components[5].strip()
+        if source == 'mw-maj-wikipedia': # Mainly noun names
+            continue
+       
         if synset_id in synset_ids:
             ids = synset_ids[synset_id]
             ids.append(word)
@@ -50,12 +69,6 @@ def load_term(filename, sysnet_prefix):
             words = [word]
             synset_ids[synset_id] = words
       
-    for synset_id in synset_ids.keys():
-#        print(f"'{synset_id}'")
-        for value in synset_ids[synset_id]:
-#            print(f" {value}")
-            continue
-
     print(f"load_term {len(synset_ids)} from {total} entries")
     return synset_ids
 
@@ -106,76 +119,129 @@ def load_catalan():
     definitions = load_definitions('data/3.0/ca/wei_cat-30_synset.tsv', 'cat-30-')
     return terms, definitions
 
-def show_item(id, terms):
-    print("---")
-    print(f"id: {id}")
-    for term in terms:
-        print(f"term: {term}")
+'''
+    Returns
+        word -> id
+'''
+def load_term_and_id(filename, sysnet_prefix):
+    WORD = 0
+    CAT_ID = 2
+
+    terms = []
+
+    # Format 'Brussel·les	1	cat-30-08850450-n	n	99.0	None	------'
+    with open(filename) as f:
+        lines = [line.rstrip() for line in f]
+
+    total = 0
+    for line in lines:
+        if line[0] == '#':
+            continue
+
+        total += 1
+        components = line.split('\t')
+        word = components[WORD].strip()
+        cat_synset_id = components[CAT_ID].strip()
+        synset_id = cat_synset_id.replace(sysnet_prefix, '')
+        
+        term = {}
+        term['word'] = word
+        term['id'] = synset_id
+        terms.append(term)
+
+    print(f"load_term_and_id {len(terms)}")
+    return terms
+
+def is_valid_subject(subject):
+    
+    if 'noun.location' == subject:
+        return False
+
+    if 'noun.person' == subject:
+        return False
+
+    if 'noun.group' == subject:
+        return False
+
+    return True
 
 def main():
+
+    print("Reads Catalan Wordnet 3.0 and creates a JSON suitable to represent a Catalan - Spanish dictionary")
 
     catalan_def = 0
     spanish_def = 0
 
     terms_catalan, definitions_catalan = load_catalan()
     terms_spanish, definitions_spanish = load_spanish()
-    terms = []
+    entries = []
 
-    for synset_id_spanish in terms_spanish:
-#        print(terms_spanish[synset_id_spanish])
+    # Catalan to Spanish
+    catalan_terms_sequential = load_term_and_id('data/3.0/ca/wei_cat-30_variant.tsv', 'cat-30-')
+    subjects = read_subjects()
 
-        ca_terms = []
-        if synset_id_spanish in terms_catalan:
-            catalan_def += 1
-            for value in terms_catalan[synset_id_spanish]:
-                ca_terms.append(value)
-#                print(f"catalan: {value}")
+    last_word = None
+    last_entry = []
+    senses = 0
 
-        label_ca = ''
-        if synset_id_spanish in definitions_catalan:
-            label_ca = definitions_catalan[synset_id_spanish]
+    for catalan_term_sequential in catalan_terms_sequential:
+        sysnet_id = catalan_term_sequential['id']
+        word = catalan_term_sequential['word']
 
-        # Spanish
-        es_terms = []
-        if synset_id_spanish in terms_spanish:
-            for value in terms_spanish[synset_id_spanish]:
-                es_terms.append(value)
-
-        label_es = ''
-        if synset_id_spanish in definitions_spanish:
-            label_es = definitions_spanish[synset_id_spanish]
-
-#        if len(ca_terms) == 0 or len(es_terms) == 0:
-#            continue
-
-#        if len(label_ca) == 0 and len(label_ca) == 0:
-#            continue
+        if sysnet_id not in terms_spanish:
+            continue
 
         term = {}
-        term['id'] = synset_id_spanish
-        term['ca'] = ca_terms
-        term['ca_label'] = label_ca
-        term['es'] = es_terms
-        term['es_label'] = label_es
+        term['id'] = sysnet_id
 
-        terms.append(term)
+        if sysnet_id in subjects:
+            subject = subjects.get(sysnet_id)
 
-    print(f"Written {len(terms)}")
+            if is_valid_subject(subject) is False:
+                continue
+          
+            term['subject'] = subject
+
+        if last_word == word:
+            entry = last_entry
+        else:
+            entry = []
+            entries.append(entry)
+
+
+        term['ca'] = word
+        definition = definitions_catalan.get(sysnet_id)
+        if definition:
+            term['ca_definition'] = definition
+            catalan_def += 1
+
+        term['es'] = terms_spanish[sysnet_id]
+
+        definition = definitions_spanish.get(sysnet_id)
+        if definition:
+            term['es_definition'] = definition
+            spanish_def += 1
+
+        senses += 1
+        entry.append(term)
+
+        last_word = word
+        last_entry = entry
+
     
-#    with open('terms-short.json', 'w') as outfile:
-#        json.dump(terms[:200], outfile, indent=4, ensure_ascii=False)
+    with open('terms-short.json', 'w') as outfile:
+        json.dump(entries[:5000], outfile, indent=4, ensure_ascii=False)
 
     with open('terms.json', 'w') as outfile:
-        json.dump(terms, outfile, indent=4, ensure_ascii=False)
+        json.dump(entries, outfile, indent=4, ensure_ascii=False)
 
     with open('words.txt', 'w') as outfile:
-        for term in terms:
-            outfile.write(f"{term['ca']} - {term['es']} - {term['ca_label']} - {term['es_label']}\n")
+        for term in entries:
+            outfile.write(f"{term}\n")
 
-    with open('synset_ids_30.txt', 'w') as outfile:
-        for term in terms:
-            outfile.write(f"{term['id']}\n")
-#            outfile.write(f"{term['id']} - {term['ca']} \n")
+    print("--- Stats")
+    print(f"{len(entries)} dictionary entries with {senses} senses")
+    print(f"{spanish_def} senses with Spanish definition, Catalan {catalan_def}")
 
 if __name__ == "__main__":
     main()
