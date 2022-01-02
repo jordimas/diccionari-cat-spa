@@ -21,7 +21,7 @@
 import sys
 import ijson
 
-def _load_wikidata():
+def load_wikidata():
 
     id_item = {}
     fh = open('/home/jordi/sc/diccionari-multilingue/sources/wikidata/terms.json', 'r')
@@ -58,12 +58,12 @@ def get_label_description(item, language):
     return label, description
 
 
-def _wikidata_todict(items):
+def wikidata_todict(items):
     id_item = {}
     
     for item in items:
         en_label, en_description = get_label_description(item, 'en')
-        synset_id = get_synset_id(item)
+        synset_id = get_synset31_id(item)
 
         new_item = {}
 

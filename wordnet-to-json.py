@@ -19,7 +19,7 @@
 # Boston, MA 02111-1307, USA.
 
 import json
-import wikidata
+from wikidata import *
 
 # Read the subjects from WordNet 3.1 since they are not avaible in 3.0
 def read_subjects_and_keymapping():
@@ -34,7 +34,7 @@ def read_subjects_and_keymapping():
             key_30 = components[1].strip()
             subject = components[2].strip()
             subjects[key_30] = subject
-            mappings[key_31] = key_30
+            mappings[key_30] = key_31
 
 
     print(f"Read {len(subjects)} subjects")
@@ -144,7 +144,7 @@ def load_term_and_id(filename, sysnet_prefix):
             continue
 
         total += 1
-        components = line.split('\t')
+        components = line.split('\t').replace("_", " ")
         word = components[WORD].strip()
         cat_synset_id = components[CAT_ID].strip()
         synset_id = cat_synset_id.replace(sysnet_prefix, '')
@@ -170,6 +170,15 @@ def is_valid_subject(subject):
 
     return True
 
+def get_label_from_wikidata(wikidata_dict, sysnet31_id, language):
+
+    item = wikidata_dict.get(sysnet31_id)
+    if not item:
+        return None
+
+    label = item.get(f'{language}_description')
+    return label
+
 def main():
 
     print("Reads Catalan Wordnet 3.0 and creates a JSON suitable to represent a Catalan - Spanish dictionary")
@@ -179,11 +188,14 @@ def main():
 
     terms_catalan, definitions_catalan = load_catalan()
     terms_spanish, definitions_spanish = load_spanish()
+    wikidata = load_wikidata()
+    wikidata_dict = wikidata_todict(wikidata)
+
     entries = []
 
     # Catalan to Spanish
     catalan_terms_sequential = load_term_and_id('data/3.0/ca/wei_cat-30_variant.tsv', 'cat-30-')
-    key31_to_key30, subjects = read_subjects_and_keymapping()
+    key30_to_key31, subjects = read_subjects_and_keymapping()
 
     last_word = None
     last_entry = []
@@ -207,6 +219,9 @@ def main():
           
             term['subject'] = subject
 
+        if word[0] != 'c':
+            continue
+
         if last_word == word:
             entry = last_entry
         else:
@@ -214,11 +229,17 @@ def main():
             entries.append(entry)
 
 
+        sysnet31_id = key30_to_key31.get(sysnet_id)
         term['ca'] = word
         definition = definitions_catalan.get(sysnet_id)
         if definition:
             term['ca_definition'] = definition
             catalan_def += 1
+        else:           
+            label_ca = get_label_from_wikidata(wikidata_dict, sysnet31_id, 'ca')
+            if label_ca:
+                term['ca_definition'] = label_ca + " (wikidata)"
+                catalan_def += 1
 
         term['es'] = terms_spanish[sysnet_id]
 
@@ -226,7 +247,12 @@ def main():
         if definition:
             term['es_definition'] = definition
             spanish_def += 1
-
+        else:           
+            label_es = get_label_from_wikidata(wikidata_dict, sysnet31_id, 'es')
+            if label_es:
+                term['es_definition'] = label_es + " (wikidata)"
+                spanish_def += 1
+                
         senses += 1
         entry.append(term)
 
