@@ -1,10 +1,24 @@
-import xml.etree.ElementTree as ET
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Copyright (c) 2022 Jordi Mas i Hernandez <jmas@softcatala.org>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this program; if not, write to the
+# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+# Boston, MA 02111-1307, USA.
+
 import json
-import unicodedata
-
-# http://wordnetweb.princeton.edu/
-# http://compling.hss.ntu.edu.sg/omw/cgi-bin/wn-gridx.cgi?usrname=&gridmode=grid
-
 
 
 def load_term(filename, sysnet_prefix):
@@ -42,11 +56,11 @@ def load_term(filename, sysnet_prefix):
 #            print(f" {value}")
             continue
 
-    print(f"load_term_spanish {len(synset_ids)} from {total} entries")
+    print(f"load_term {len(synset_ids)} from {total} entries")
     return synset_ids
 
 
-def load_definitions_spanish():
+def load_definitions(filename, sysnet_prefix):
 
     DEFINITION = 6
     CAT_ID = 0
@@ -54,7 +68,7 @@ def load_definitions_spanish():
     total = 0
 
     # Format 'cat-30-00001740-n	n	82546	-	-	0	Realitat considerada per abstracció com a unitat (amb o sense vida)	19	0	------'
-    with open('data/3.0/es/wei_spa-30_synset.tsv') as f:
+    with open(filename) as f:
         lines = [line.rstrip() for line in f]
 
     for line in lines:
@@ -66,7 +80,7 @@ def load_definitions_spanish():
         definition = components[DEFINITION].strip()
 
         cat_synset_id = components[CAT_ID].strip()
-        synset_id = cat_synset_id.replace('spa-30-', '')
+        synset_id = cat_synset_id.replace(sysnet_prefix, '')
         if definition == 'None' or len(definition) == 0:
             continue
 
@@ -79,54 +93,17 @@ def load_definitions_spanish():
 #            print(f" {value}")
             continue
 
-    print(f"load_definitions_spanish {len(synset_ids)} from {total} entries")
+    print(f"load_definitions {len(synset_ids)} from {total} entries")
     return synset_ids
 
 def load_spanish():
     terms = load_term('data/3.0/es/wei_spa-30_variant.tsv', 'spa-30-')
-    definitions = load_definitions_spanish()
+    definitions = load_definitions('data/3.0/es/wei_spa-30_synset.tsv', 'spa-30-')
     return terms, definitions
-
-
-def load_definitions_catalan():
-
-    DEFINITION = 6
-    CAT_ID = 0
-    synset_ids = {}
-    total = 0
-
-    # Format 'cat-30-00001740-n	n	82546	-	-	0	Realitat considerada per abstracció com a unitat (amb o sense vida)	19	0	------'
-    with open('data/3.0/ca/wei_cat-30_synset.tsv') as f:
-        lines = [line.rstrip() for line in f]
-
-    for line in lines:
-        if line[0] == '#':
-            continue
-
-        total += 1
-        components = line.split('\t')
-        definition = components[DEFINITION].strip()
-
-        cat_synset_id = components[CAT_ID].strip()
-        synset_id = cat_synset_id.replace('cat-30-', '')
-        if definition == 'None' or len(definition) == 0:
-            continue
-
-        #print(synset_id)
-        synset_ids[synset_id] = definition
-
-    for synset_id in synset_ids.keys():
-        #print(f"'{synset_id}'")
-        for value in synset_ids[synset_id]:
-#            print(f" {value}")
-            continue
-
-    print(f"load_definitions_catalan {len(synset_ids)} from {total} entries")
-    return synset_ids
 
 def load_catalan():
     terms = load_term('data/3.0/ca/wei_cat-30_variant.tsv', 'cat-30-')
-    definitions = load_definitions_catalan()
+    definitions = load_definitions('data/3.0/ca/wei_cat-30_synset.tsv', 'cat-30-')
     return terms, definitions
 
 def show_item(id, terms):
