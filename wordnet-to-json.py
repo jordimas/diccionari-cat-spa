@@ -7,14 +7,14 @@ import unicodedata
 
 
 
-def load_term_spanish():
+def load_term(filename, sysnet_prefix):
     WORD = 0
     CAT_ID = 2
 
     synset_ids = {}
 
     # Format 'Brussel·les	1	cat-30-08850450-n	n	99.0	None	------'
-    with open('data/3.0/es/wei_spa-30_variant.tsv') as f:
+    with open(filename) as f:
         lines = [line.rstrip() for line in f]
 
     total = 0
@@ -26,7 +26,7 @@ def load_term_spanish():
         components = line.split('\t')
         word = components[WORD].strip()
         cat_synset_id = components[CAT_ID].strip()
-        synset_id = cat_synset_id.replace('spa-30-', '')
+        synset_id = cat_synset_id.replace(sysnet_prefix, '')
         
         if synset_id in synset_ids:
             ids = synset_ids[synset_id]
@@ -83,49 +83,9 @@ def load_definitions_spanish():
     return synset_ids
 
 def load_spanish():
-    terms = load_term_spanish()
+    terms = load_term('data/3.0/es/wei_spa-30_variant.tsv', 'spa-30-')
     definitions = load_definitions_spanish()
     return terms, definitions
-
-
-def load_term_catalan():
-    WORD = 0
-    CAT_ID = 2
-
-    synset_ids = {}
-    total = 0
-
-    # Format 'Brussel·les	1	cat-30-08850450-n	n	99.0	None	------'
-    with open('data/3.0/ca/wei_cat-30_variant.tsv') as f:
-        lines = [line.rstrip() for line in f]
-
-    for line in lines:
-        if line[0] == '#':
-            continue
-
-        total += 1
-        components = line.split('\t')
-        word = components[WORD].strip()
-        cat_synset_id = components[CAT_ID].strip()
-        synset_id = cat_synset_id.replace('cat-30-', '')
-        
-        if synset_id in synset_ids:
-            ids = synset_ids[synset_id]
-            ids.append(word)
-            synset_ids[synset_id] = ids
-        else:
-            words = [word]
-            synset_ids[synset_id] = words
-
-       
-    for synset_id in synset_ids.keys():
-#        print(f"'{synset_id}'")
-        for value in synset_ids[synset_id]:
-#            print(f" {value}")
-            continue
-
-    print(f"load_term_catalan {len(synset_ids)} from {total} entries")
-    return synset_ids
 
 
 def load_definitions_catalan():
@@ -165,7 +125,7 @@ def load_definitions_catalan():
     return synset_ids
 
 def load_catalan():
-    terms = load_term_catalan()
+    terms = load_term('data/3.0/ca/wei_cat-30_variant.tsv', 'cat-30-')
     definitions = load_definitions_catalan()
     return terms, definitions
 
