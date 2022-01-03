@@ -219,8 +219,8 @@ def main():
           
             term['subject'] = subject
 
-        if word[0] != 'c':
-            continue
+        #if word[0] != 'c':
+        #    continue
 
         if last_word == word:
             entry = last_entry
